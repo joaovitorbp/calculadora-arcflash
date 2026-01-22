@@ -92,7 +92,7 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
     }
 
 # ==============================================================================
-# 3. FRONTEND: STREAMLIT APP (V24.0 FINAL AJUSTADA)
+# 3. FRONTEND: STREAMLIT APP (V25.0 FINAL + FIX INPUTS)
 # ==============================================================================
 st.set_page_config(page_title="Calc. Energia Incidente", layout="wide")
 
@@ -133,7 +133,7 @@ st.markdown("""
 
 with st.sidebar:
     st.header("Identificação")
-    # Equipamento agora com key no session_state mas sem callback (não reseta cálculo)
+    # Equipamento: Não possui callback (não reseta cálculo), mas a variável 'equip_name' é capturada em tempo real
     equip_name = st.text_input("TAG do Equipamento", value="", key="equip_tag")
     st.caption("Desenvolvido em Python | IEEE 1584-2018")
 
@@ -185,13 +185,13 @@ st.markdown("<br>", unsafe_allow_html=True)
 if st.button("CALCULAR ENERGIA FINAL", type="primary", use_container_width=True):
     if not pre_res:
         st.warning("⚠️ Preencha os dados do sistema primeiro.")
-    # CORREÇÃO: Ambos devem ser maiores que 0 (Lógica OR para erro)
+    # VALIDAÇÃO RIGOROSA: Ambos os tempos devem ser > 0
     elif st.session_state.t_nom <= 0 or st.session_state.t_min <= 0:
-        st.warning("⚠️ Preencha os dois tempos de atuação (Nominal e Reduzido).")
+        st.warning("⚠️ Erro: Ambos os tempos de atuação (Nominal E Reduzido) devem ser maiores que zero.")
     else:
         final_res = calcular_tudo(voltage, ibf_ka, config_electrode, gap_mm, dist_mm, st.session_state.t_nom, st.session_state.t_min, h_mm, w_mm, d_mm)
         st.session_state.results = final_res
-        st.session_state.inputs = {'voltage': voltage, 'dist_mm': dist_mm} # Equip name pegaremos dinamicamente
+        st.session_state.inputs = {'voltage': voltage, 'dist_mm': dist_mm}
 
 if st.session_state.results:
     res = st.session_state.results
@@ -228,7 +228,8 @@ if st.session_state.results:
     st.markdown("---")
     st.subheader("5. Exportação")
 
-    def preencher_modelo_excel():
+    # Passamos o 'nome_tag_atual' diretamente como argumento para garantir atualização
+    def preencher_modelo_excel(nome_tag_atual):
         try:
             wb = load_workbook("ADESIVO ENERGIA INCIDENTE - MODELO.xlsx")
             ws = wb.active
@@ -236,20 +237,17 @@ if st.session_state.results:
             st.error(f"Erro ao carregar o modelo: {e}. Verifique se o arquivo está no GitHub.")
             return None
 
-        # Helper para escrever na célula e lidar com Merge
         def write_cell(ws, r, c, val):
             cell = ws.cell(row=r, column=c)
             if isinstance(cell, MergedCell):
                 for range_ in ws.merged_cells.ranges:
                     if cell.coordinate in range_:
-                        # Escreve na célula principal do merge (top-left)
                         top_left = ws.cell(row=range_.min_row, column=range_.min_col)
                         top_left.value = val
                         return
             else:
                 cell.value = val
 
-        # Helper para buscar e preencher offset
         def fill_label(ws, text_to_find, val_to_write, col_offset):
             for r in ws.iter_rows(min_row=1, max_row=20, min_col=1, max_col=12):
                 for cell in r:
@@ -258,7 +256,6 @@ if st.session_state.results:
                             write_cell(ws, cell.row, cell.column + col_offset, val_to_write)
                             return
 
-        # Dados da Sessão
         inp = st.session_state.inputs
         v_val = inp['voltage']
         
@@ -267,7 +264,6 @@ if st.session_state.results:
         elif v_val <= 1000: zr, zc, classe = 200, 700, "0 (≤ 1000 V)"
         else: zr, zc, classe = 700, 1500, "Consultar (> 1kV)"
 
-        # 1. Preenchimento de Dados Técnicos
         fill_label(ws, "Energia incidente", f"{res['e_final']:.2f} cal/cm²", 2)
         fill_label(ws, "Limite do arco", f"{res['afb_final']:.0f} mm", 2)
         fill_label(ws, "Distância de trabalho", f"{inp['dist_mm']} mm", 2)
@@ -279,26 +275,22 @@ if st.session_state.results:
         fill_label(ws, "Zona controlada:", f"{zc} mm", 1)
         fill_label(ws, "Zona de risco:", f"{zr} mm", 1)
         
-        # 2. Preenchimento do Equipamento Dinâmico (Usa o valor atual da widget)
-        # Pega o valor atual do input, independente do momento do cálculo
-        nome_atual = st.session_state.equip_tag 
-        equip_text = f"Equipamento: {nome_atual or 'N/A'}"
+        # USA O ARGUMENTO DA FUNÇÃO (tempo real) em vez de estado salvo
+        equip_text = f"Equipamento: {nome_tag_atual or 'N/A'}"
         fill_label(ws, "Equipamento:", equip_text, 0)
 
-        # 3. Data
-        try:
-            write_cell(ws, 13, 9, datetime.now().strftime('%b/%Y').upper())
+        try: write_cell(ws, 13, 9, datetime.now().strftime('%b/%Y').upper())
         except: pass
 
         output = io.BytesIO()
         wb.save(output)
         return output.getvalue()
 
-    excel_data = preencher_modelo_excel()
+    # Passa o valor do input atual (equip_name) diretamente para a função
+    excel_data = preencher_modelo_excel(equip_name)
+    
     if excel_data:
-        # Nome do arquivo também usa o valor atual da tag
-        f_tag = st.session_state.equip_tag
-        f_name = f"Adesivo_{f_tag}.xlsx" if f_tag else "Adesivo_ArcFlash.xlsx"
+        f_name = f"Adesivo_{equip_name}.xlsx" if equip_name else "Adesivo_ArcFlash.xlsx"
         
         st.download_button(
             label="📥 Baixar Adesivo (Modelo Preenchido)",
