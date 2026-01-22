@@ -19,12 +19,12 @@ CONSTANTS_AB = {'VCB':  {'A': 4,  'B': 20}, 'VCBB': {'A': 10, 'B': 24}, 'HCB':  
 def log10(x): return math.log10(x) if x > 0 else 0
 
 def obter_categoria_nfpa(e):
-    if e <= 1.2: return "Isento (&lt; 1.2)", "#28a745" # Verde
-    if e <= 4.0: return "Categoria 1", "#ffc107" # Amarelo
-    if e <= 8.0: return "Categoria 2", "#fd7e14" # Laranja
-    if e <= 25.0: return "Categoria 3", "#dc3545" # Vermelho
-    if e <= 40.0: return "Categoria 4", "#6f42c1" # Roxo
-    return "PERIGO EXTREMO", "#000000" # Preto
+    if e <= 1.2: return "Isento (&lt; 1.2)", "#28a745"
+    if e <= 4.0: return "Categoria 1", "#ffc107"
+    if e <= 8.0: return "Categoria 2", "#fd7e14"
+    if e <= 25.0: return "Categoria 3", "#dc3545"
+    if e <= 40.0: return "Categoria 4", "#6f42c1"
+    return "PERIGO EXTREMO", "#000000"
 
 def calcular_ajuste_linear(d, v, c):
     if c not in CONSTANTS_AB: return d / 25.4
@@ -98,7 +98,7 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
     }
 
 # ==============================================================================
-# 3. FRONTEND: STREAMLIT APP (V13.0 FINAL)
+# 3. FRONTEND: STREAMLIT APP (V14.0 FINAL)
 # ==============================================================================
 st.set_page_config(page_title="Calc. Energia Incidente", layout="wide")
 
@@ -119,22 +119,8 @@ st.markdown("""
         text-align: center;
         color: #1f2937; 
     }
-    
-    .card-label {
-        font-size: 13px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: #6b7280;
-        margin-bottom: 8px;
-    }
-    
-    .card-value {
-        font-size: 20px;
-        font-weight: 700;
-        color: #111827; 
-    }
-    
+    .card-label { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 8px; }
+    .card-value { font-size: 20px; font-weight: 700; color: #111827; }
     .card-unit { font-size: 14px; font-weight: 400; color: #6b7280; }
 
     /* 2. Cartão de Resultado Final (Igual peso para os 3 itens) */
@@ -161,20 +147,37 @@ st.markdown("""
     }
     
     .final-value {
-        font-size: 32px; /* Fonte Grande para Destaque */
+        font-size: 32px; 
         font-weight: 800;
-        /* Cor definida inline */
     }
     
     .final-unit { font-size: 18px; font-weight: 500; color: #9ca3af; }
     
+    /* 3. Rodapé de Resumo Discreto */
+    .summary-footer {
+        margin-top: 15px;
+        padding: 10px 20px;
+        background-color: #f9fafb;
+        border-radius: 8px;
+        text-align: center;
+        color: #4b5563;
+        font-size: 14px;
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        align-items: center;
+        border: 1px solid #e5e7eb;
+    }
+    .summary-item { display: flex; align-items: center; gap: 6px; }
+    .summary-label { font-weight: 500; color: #6b7280; }
+    .summary-val-bold { font-weight: 700; color: #1f2937; text-transform: uppercase;}
+
     /* Utilitários */
     .stNumberInput input { text-align: center; }
     .detail-row { border-bottom: 1px solid #eee; padding: 8px 0; font-family: monospace; font-size: 14px; }
     .detail-label { font-weight: bold; color: #444; }
     .detail-val { color: #007bff; float: right; }
     
-    /* Linha divisória vertical para Seção 3 */
     .vertical-divider {
         border-right: 1px solid #e5e7eb;
         height: 100%;
@@ -254,32 +257,27 @@ if calc_btn:
         st.subheader("3. Resultados Intermediários")
         
         ri1, r_sep, ri2 = st.columns([1, 0.1, 1])
-        
         with ri1:
             st.caption("CENÁRIO NOMINAL")
             c_nom1, c_nom2 = st.columns(2)
             with c_nom1: card("Energia", f"{final_res['e_nominal']:.2f}", "cal/cm²")
             with c_nom2: card("AFB", f"{final_res['afb_nominal']:.0f}", "mm")
-            
         with r_sep:
             st.markdown('<div class="vertical-divider"></div>', unsafe_allow_html=True)
-            
         with ri2:
             st.caption("CENÁRIO REDUZIDO")
             c_red1, c_red2 = st.columns(2)
             with c_red1: card("Energia", f"{final_res['e_min']:.2f}", "cal/cm²")
             with c_red2: card("AFB", f"{final_res['afb_min']:.0f}", "mm")
 
-        # --- SEÇÃO 4: FINAL (PESO VISUAL IGUALADO) ---
+        # --- SEÇÃO 4: FINAL ---
         st.markdown("<br>", unsafe_allow_html=True)
-        st.subheader(f"4. Resultados Finais (Pior Caso: {final_res['pior_caso']})")
+        st.subheader(f"4. Resultados Finais")
         
         cat_txt, color_hex = obter_categoria_nfpa(final_res['e_final'])
         
-        # Layout de 3 Colunas iguais
+        # 4.1 Cards Principais
         cf1, cf2, cf3 = st.columns(3)
-        
-        # Helper para cartão final
         def final_card(label, value, unit, color):
             st.markdown(f"""
             <div class="final-card" style="border-color: {color};">
@@ -288,22 +286,33 @@ if calc_btn:
             </div>
             """, unsafe_allow_html=True)
 
-        with cf1:
-            final_card("Energia Incidente", f"{final_res['e_final']:.2f}", "cal/cm²", color_hex)
-            
-        with cf2:
-            final_card("Fronteira de Arco (AFB)", f"{final_res['afb_final']:.0f}", "mm", color_hex)
-            
-        with cf3:
-            # Cartão especial para Categoria (Texto como badge)
+        with cf1: final_card("Energia Incidente", f"{final_res['e_final']:.2f}", "cal/cm²", color_hex)
+        with cf2: final_card("Fronteira de Arco (AFB)", f"{final_res['afb_final']:.0f}", "mm", color_hex)
+        with cf3: 
+            # Card de Categoria
             st.markdown(f"""
             <div class="final-card" style="border-color: {color_hex};">
                 <div class="final-label">Categoria de Risco</div>
-                <div style="background-color: {color_hex}; color: white; padding: 5px 20px; border-radius: 20px; font-weight: 700; font-size: 24px; white-space: nowrap;">
+                <div style="background-color: {color_hex}; color: white; padding: 5px 15px; border-radius: 20px; font-weight: 700; font-size: 22px; white-space: nowrap;">
                     {cat_txt}
                 </div>
             </div>
             """, unsafe_allow_html=True)
+
+        # 4.2 Rodapé Discreto (NOVO)
+        st.markdown(f"""
+        <div class="summary-footer">
+            <div class="summary-item">
+                <span class="summary-label">Cenário Definidor:</span>
+                <span class="summary-val-bold">{final_res['pior_caso'].upper()}</span>
+            </div>
+            <div style="width: 1px; height: 15px; background: #d1d5db;"></div>
+            <div class="summary-item">
+                <span class="summary-label">Classificação EPI:</span>
+                <span class="summary-val-bold" style="color: {color_hex}">{cat_txt}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
         # Memória
         st.markdown("<br>", unsafe_allow_html=True)
