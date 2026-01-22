@@ -19,13 +19,12 @@ CONSTANTS_AB = {'VCB':  {'A': 4,  'B': 20}, 'VCBB': {'A': 10, 'B': 24}, 'HCB':  
 def log10(x): return math.log10(x) if x > 0 else 0
 
 def obter_categoria_nfpa(e):
-    # Retorna: (Nome Categoria, Rating EPI, Cor Hex)
-    if e <= 1.2: return "Isento", "N/A (&lt; 1.2 cal)", "#28a745"
-    if e <= 4.0: return "Categoria 1", "Min. 4.0 cal/cm²", "#ffc107"
-    if e <= 8.0: return "Categoria 2", "Min. 8.0 cal/cm²", "#fd7e14"
-    if e <= 25.0: return "Categoria 3", "Min. 25.0 cal/cm²", "#dc3545"
-    if e <= 40.0: return "Categoria 4", "Min. 40.0 cal/cm²", "#6f42c1"
-    return "PERIGO EXTREMO", "Não Operar (> 40 cal)", "#000000"
+    if e <= 1.2: return "Isento (&lt; 1.2)", "#28a745", "N/A (< 1.2 cal/cm²)" 
+    if e <= 4.0: return "Categoria 1", "#ffc107", "Min. 4.0 cal/cm²"
+    if e <= 8.0: return "Categoria 2", "#fd7e14", "Min. 8.0 cal/cm²"
+    if e <= 25.0: return "Categoria 3", "#dc3545", "Min. 25.0 cal/cm²"
+    if e <= 40.0: return "Categoria 4", "#6f42c1", "Min. 40.0 cal/cm²"
+    return "PERIGO EXTREMO", "#000000", "Não Operar (> 40 cal)"
 
 def calcular_ajuste_linear(d, v, c):
     if c not in CONSTANTS_AB: return d / 25.4
@@ -99,7 +98,7 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
     }
 
 # ==============================================================================
-# 3. FRONTEND: STREAMLIT APP (V15.0 FINAL)
+# 3. FRONTEND: STREAMLIT APP (V16.0 FINAL)
 # ==============================================================================
 st.set_page_config(page_title="Calc. Energia Incidente", layout="wide")
 
@@ -153,25 +152,6 @@ st.markdown("""
     }
     
     .final-unit { font-size: 18px; font-weight: 500; color: #9ca3af; }
-    
-    /* 3. Rodapé de Resumo Discreto */
-    .summary-footer {
-        margin-top: 15px;
-        padding: 10px 20px;
-        background-color: #f9fafb;
-        border-radius: 8px;
-        text-align: center;
-        color: #4b5563;
-        font-size: 14px;
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-        align-items: center;
-        border: 1px solid #e5e7eb;
-    }
-    .summary-item { display: flex; align-items: center; gap: 6px; }
-    .summary-label { font-weight: 500; color: #6b7280; }
-    .summary-val-bold { font-weight: 700; color: #1f2937; text-transform: uppercase;}
 
     /* Utilitários */
     .stNumberInput input { text-align: center; }
@@ -275,8 +255,8 @@ if calc_btn:
         st.markdown("<br>", unsafe_allow_html=True)
         st.subheader(f"4. Resultados Finais")
         
-        # Aqui pegamos o Rating (cat_rate) além do nome e cor
-        cat_name, cat_rate, color_hex = obter_categoria_nfpa(final_res['e_final'])
+        # cat_name = Nome da Categoria, cat_rate = Rating do EPI (cal/cm²)
+        cat_name, color_hex, cat_rate = obter_categoria_nfpa(final_res['e_final'])
         
         # 4.1 Cards Principais
         cf1, cf2, cf3 = st.columns(3)
@@ -291,7 +271,6 @@ if calc_btn:
         with cf1: final_card("Energia Incidente", f"{final_res['e_final']:.2f}", "cal/cm²", color_hex)
         with cf2: final_card("Fronteira de Arco (AFB)", f"{final_res['afb_final']:.0f}", "mm", color_hex)
         with cf3: 
-            # Card de Categoria
             st.markdown(f"""
             <div class="final-card" style="border-color: {color_hex};">
                 <div class="final-label">Categoria de Risco</div>
@@ -301,20 +280,15 @@ if calc_btn:
             </div>
             """, unsafe_allow_html=True)
 
-        # 4.2 Rodapé Discreto (Com Rating de EPI e Cenário)
-        st.markdown(f"""
-        <div class="summary-footer">
-            <div class="summary-item">
-                <span class="summary-label">Cenário Definidor:</span>
-                <span class="summary-val-bold">{final_res['pior_caso'].upper()}</span>
-            </div>
-            <div style="width: 1px; height: 15px; background: #d1d5db;"></div>
-            <div class="summary-item">
-                <span class="summary-label">EPI Recomendado:</span>
-                <span class="summary-val-bold" style="color: {color_hex}">{cat_rate}</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        # 4.2 Rodapé Texto Simples (Sem card)
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_res1, col_res2 = st.columns(2)
+        
+        with col_res1:
+            st.markdown(f"**Cenário Definidor:** \n{final_res['pior_caso'].upper()}")
+            
+        with col_res2:
+            st.markdown(f"**EPI Recomendado:** \n{cat_rate}")
 
         # Memória
         st.markdown("<br>", unsafe_allow_html=True)
