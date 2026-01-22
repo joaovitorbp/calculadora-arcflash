@@ -127,7 +127,7 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
     }
 
 # ==============================================================================
-# 3. FRONTEND: STREAMLIT APP (V31.0 - FINALÍSSIMA POLIDA)
+# 3. FRONTEND: STREAMLIT APP (V32.0 - NUCLEAR OPTION CSS)
 # ==============================================================================
 st.set_page_config(page_title="Calc. Energia Incidente", layout="wide")
 
@@ -147,32 +147,33 @@ def on_time_change():
 
 st.markdown("""
 <style>
-    /* Cards Estilizados */
     .std-card { background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: #1f2937; }
     .card-label { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 8px; }
     .card-value { font-size: 20px; font-weight: 700; color: #111827; }
     .card-unit { font-size: 14px; font-weight: 400; color: #6b7280; }
-    
-    /* Cartões Finais */
     .final-card { background-color: #ffffff; border: 2px solid #e5e7eb; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
     .final-label { font-size: 14px; font-weight: 700; text-transform: uppercase; color: #6b7280; margin-bottom: 12px; }
     .final-value { font-size: 32px; font-weight: 800; }
     .final-unit { font-size: 18px; font-weight: 500; color: #9ca3af; }
-    
-    /* Rodapé */
     .summary-footer { margin-top: 15px; padding: 10px 20px; background-color: #f9fafb; border-radius: 8px; text-align: center; color: #4b5563; font-size: 14px; display: flex; justify-content: center; gap: 20px; align-items: center; border: 1px solid #e5e7eb; }
     .summary-item { display: flex; align-items: center; gap: 6px; }
     .summary-label { font-weight: 500; color: #6b7280; }
     .summary-val-bold { font-weight: 700; color: #1f2937; text-transform: uppercase;}
-    
-    /* Utilitários */
     .stNumberInput input { text-align: center; }
     .vertical-divider { border-right: 1px solid #e5e7eb; height: 100%; width: 1px; margin: 0 auto; }
     
-    /* REMOÇÃO DO "X" (Clear Button) DOS INPUTS */
-    /* Garante que o botão de limpar não apareça, evitando cliques acidentais */
-    button[aria-label="Clear value"] {
+    /* --- CSS NUCLEAR PARA MATAR O "X" (CLEAR BUTTON) --- */
+    /* Remove o botão de limpar de todos os inputs (texto e número) */
+    button[aria-label="Clear value"], 
+    div[role="button"][aria-label="Clear value"],
+    button[title="Clear value"],
+    [data-testid="stInputClear"],
+    [data-testid="baseButton-header"] {
         display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        width: 0 !important;
+        pointer-events: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
