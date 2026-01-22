@@ -4,13 +4,11 @@ import pandas as pd
 import numpy as np
 
 # ==============================================================================
-# 1. BACKEND: LÓGICA DE CÁLCULO IEEE 1584-2018
+# 1. BACKEND: LÓGICA DE CÁLCULO IEEE 1584-2018 (INTACTO)
 # ==============================================================================
 TABLE_1 = {'VCB': [-0.04287, 1.035, -0.083, 0, 0, -4.783e-9, 1.962e-6, -0.000229, 0.003141, 1.092], 'VCBB': [-0.017432, 0.98, -0.05, 0, 0, -5.767e-9, 2.524e-6, -0.00034, 0.01187, 1.013], 'HCB': [0.054922, 0.988, -0.11, 0, 0, -5.382e-9, 2.316e-6, -0.000302, 0.0091, 0.9725], 'VOA': [0.043785, 1.04, -0.18, 0, 0, -4.783e-9, 1.962e-6, -0.000229, 0.003141, 1.092], 'HOA': [0.111147, 1.008, -0.24, 0, 0, -3.895e-9, 1.641e-6, -0.000197, 0.002615, 1.1]}
 TABLE_2 = {'VCB': [0, -1.4269e-6, 8.3137e-5, -0.0019382, 0.022366, -0.12645, 0.30226], 'VCBB': [1.138e-6, -6.0287e-5, 0.0012758, -0.013778, 0.080217, -0.24066, 0.33524], 'HCB': [0, -3.097e-6, 0.00016405, -0.0033609, 0.033308, -0.16182, 0.34627], 'VOA': [9.5606e-7, -5.1543e-5, 0.0011161, -0.01242, 0.075125, -0.23584, 0.33696], 'HOA': [0, -3.1555e-6, 0.0001682, -0.0034607, 0.034124, -0.1599, 0.34629]}
 TABLE_3 = {'VCB': [0.753364, 0.566, 1.752636, 0, 0, -4.783e-9, 1.962e-6, -0.000229, 0.003141, 1.092, 0, -1.598, 0.957], 'VCBB': [3.068459, 0.26, -0.098107, 0, 0, -5.767e-9, 2.524e-6, -0.00034, 0.01187, 1.013, -0.06, -1.809, 1.19], 'HCB': [4.073745, 0.344, -0.370259, 0, 0, -5.382e-9, 2.316e-6, -0.000302, 0.0091, 0.9725, 0, -2.03, 1.036], 'VOA': [0.679294, 0.746, 1.222636, 0, 0, -4.783e-9, 1.962e-6, -0.000229, 0.003141, 1.092, 0, -1.598, 0.997], 'HOA': [3.470417, 0.465, -0.261863, 0, 0, -3.895e-9, 1.641e-6, -0.000197, 0.002615, 1.1, 0, -1.99, 1.04]}
-TABLE_7_TYPICAL = {'VCB': [-0.000302, 0.03441, 0.4325], 'VCBB': [-0.0002976, 0.032, 0.479], 'HCB': [-0.0001923, 0.01935, 0.6899]}
-TABLE_7_SHALLOW = {'VCB': [0.002222, -0.02556, 0.6222], 'VCBB': [-0.002778, 0.1194, -0.2778], 'HCB': [-0.0005556, 0.03722, 0.4778]}
 CONSTANTS_AB = {'VCB':  {'A': 4,  'B': 20}, 'VCBB': {'A': 10, 'B': 24}, 'HCB':  {'A': 10, 'B': 22}}
 
 # ==============================================================================
@@ -19,12 +17,12 @@ CONSTANTS_AB = {'VCB':  {'A': 4,  'B': 20}, 'VCBB': {'A': 10, 'B': 24}, 'HCB':  
 def log10(x): return math.log10(x) if x > 0 else 0
 
 def obter_categoria_nfpa(e):
-    if e <= 1.2: return "Isento (< 1.2)", "#28a745" # Verde
-    if e <= 4.0: return "Categoria 1", "#ffc107" # Amarelo
-    if e <= 8.0: return "Categoria 2", "#fd7e14" # Laranja
-    if e <= 25.0: return "Categoria 3", "#dc3545" # Vermelho
-    if e <= 40.0: return "Categoria 4", "#6f42c1" # Roxo
-    return "PERIGO EXTREMO", "#000000" # Preto
+    if e <= 1.2: return "Isento (< 1.2)", "#28a745"
+    if e <= 4.0: return "Categoria 1", "#ffc107"
+    if e <= 8.0: return "Categoria 2", "#fd7e14"
+    if e <= 25.0: return "Categoria 3", "#dc3545"
+    if e <= 40.0: return "Categoria 4", "#6f42c1"
+    return "PERIGO EXTREMO", "#000000"
 
 def calcular_ajuste_linear(d, v, c):
     if c not in CONSTANTS_AB: return d / 25.4
@@ -98,79 +96,92 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
     }
 
 # ==============================================================================
-# 3. FRONTEND: STREAMLIT APP (V9.0 FINAL)
+# 3. FRONTEND: STREAMLIT APP (V10.0 UNIFICADA)
 # ==============================================================================
 st.set_page_config(page_title="Calc. Energia Incidente", layout="wide")
 
 st.markdown("""
 <style>
-    /* 1. ESTILO DE CAIXAS DE INFORMAÇÃO (Correntes e Intermediários) */
-    .info-box { 
-        background-color: #f8f9fa;
-        padding: 15px; 
-        border-radius: 6px; 
-        text-align: center; 
-        border: 1px solid #e0e0e0; 
-        height: auto; /* Altura automática para não cortar texto */
-        min-height: 80px;
+    /* DESIGN SYSTEM UNIFICADO: CARTÕES (CARDS) */
+    
+    /* 1. Base do Cartão (Usado em Seção 2 e 3) */
+    .std-card {
+        background-color: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 15px;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        height: 100%;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        text-align: center;
+        /* Força texto escuro mesmo em tema dark */
+        color: #1f2937; 
     }
-    .info-label {
-        font-size: 14px;
-        color: #555;
-        font-weight: 500;
-        margin-bottom: 5px;
+    
+    /* 2. Título do Cartão (Label) */
+    .card-label {
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6b7280; /* Cinza médio */
+        margin-bottom: 8px;
     }
-    .info-value {
+    
+    /* 3. Valor Principal do Cartão */
+    .card-value {
         font-size: 20px;
-        font-weight: bold;
-        color: #0056b3;
+        font-weight: 700;
+        color: #111827; /* Quase preto */
+    }
+    
+    /* 4. Unidade ou Subtexto */
+    .card-unit {
+        font-size: 14px;
+        font-weight: 400;
+        color: #6b7280;
     }
 
-    /* 2. DESTAQUE FINAL (HERO BOX) */
-    .hero-box {
+    /* 5. Cartão de Destaque Final (HERO) */
+    .hero-card {
         background-color: #ffffff;
-        padding: 30px;
+        border: 2px solid #e5e7eb; /* Será sobrescrito pela cor do risco */
         border-radius: 12px;
+        padding: 30px;
         text-align: center;
-        border: 3px solid #ddd; 
-        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         margin-top: 10px;
     }
-    .hero-title { 
-        font-size: 16px; 
-        color: #555; 
-        font-weight: 700; 
-        text-transform: uppercase; 
-        letter-spacing: 1.2px; 
-        margin-bottom: 10px; 
+    .hero-label {
+        font-size: 16px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #374151;
+        margin-bottom: 10px;
     }
-    .hero-value { 
-        font-size: 42px; 
-        font-weight: 800; 
-        color: #333; 
-        margin: 10px 0; 
+    .hero-value {
+        font-size: 48px;
+        font-weight: 800;
+        margin: 10px 0;
+        color: #111827;
     }
-    .hero-unit { font-size: 24px; color: #777; font-weight: 500; }
-    .hero-footer { font-size: 15px; color: #777; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
     
-    .risk-badge { 
-        display: inline-block; 
-        padding: 8px 20px; 
-        border-radius: 25px; 
-        color: white; 
-        font-weight: bold; 
-        font-size: 18px;
-        margin-top: 5px;
-    }
-
+    /* Utilitários */
     .stNumberInput input { text-align: center; }
     .detail-row { border-bottom: 1px solid #eee; padding: 8px 0; font-family: monospace; font-size: 14px; }
     .detail-label { font-weight: bold; color: #444; }
     .detail-val { color: #007bff; float: right; }
+    
+    /* Linha divisória vertical para Seção 3 */
+    .vertical-divider {
+        border-right: 1px solid #e5e7eb;
+        height: 100%;
+        width: 1px;
+        margin: 0 auto;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -203,24 +214,38 @@ pre_res = calcular_tudo(voltage, ibf_ka, config_electrode, gap_mm, dist_mm, 0, 0
 # --- SEÇÃO 2: PROTEÇÃO E TEMPOS ---
 st.subheader("2. Definição de Tempos de Proteção")
 
+# Helper para criar os cartões padronizados
+def card(label, value, unit="", color="#111827"):
+    st.markdown(f"""
+    <div class="std-card">
+        <div class="card-label">{label}</div>
+        <div class="card-value" style="color: {color}">{value} <span class="card-unit">{unit}</span></div>
+    </div>
+    """, unsafe_allow_html=True)
+
 cp1, cp2 = st.columns(2)
-# Função box padrão
-def make_info_box(label, value):
-    st.markdown(f"""<div class="info-box"><div class="info-label">{label}</div><div class="info-value">{value}</div></div>""", unsafe_allow_html=True)
 
 with cp1:
     st.markdown("##### Cenário Nominal")
     col_a, col_b = st.columns([1, 1.5])
-    val_iarc = f"{pre_res['i_arc']:.3f} kA" if pre_res else "- kA"
-    with col_a: make_info_box("Corrente (Iarc)", val_iarc)
-    with col_b: time_ms = st.number_input("Tempo de Atuação (ms)", min_value=0.0, value=None, step=0.1, format="%.1f", key="t_nom")
+    val_iarc = f"{pre_res['i_arc']:.3f}" if pre_res else "-"
+    
+    with col_a: 
+        # Usa o cartão padrão
+        card("Corrente (Iarc)", val_iarc, "kA", "#0056b3")
+    with col_b: 
+        time_ms = st.number_input("Tempo de Atuação (ms)", min_value=0.0, value=None, step=0.1, format="%.1f", key="t_nom")
 
 with cp2:
     st.markdown("##### Cenário Reduzido")
     col_c, col_d = st.columns([1, 1.5])
-    val_imin = f"{pre_res['i_min']:.3f} kA" if pre_res else "- kA"
-    with col_c: make_info_box("Corrente (Imin)", val_imin)
-    with col_d: time_min_ms = st.number_input("Tempo de Atuação (ms)", min_value=0.0, value=None, step=0.1, format="%.1f", key="t_min")
+    val_imin = f"{pre_res['i_min']:.3f}" if pre_res else "-"
+    
+    with col_c: 
+        # Usa o cartão padrão (mesmo estilo)
+        card("Corrente (Imin)", val_imin, "kA", "#0056b3")
+    with col_d: 
+        time_min_ms = st.number_input("Tempo de Atuação (ms)", min_value=0.0, value=None, step=0.1, format="%.1f", key="t_min")
 
 st.markdown("<br>", unsafe_allow_html=True)
 calc_btn = st.button("CALCULAR ENERGIA FINAL", type="primary", use_container_width=True)
@@ -235,44 +260,49 @@ if calc_btn:
         final_res = calcular_tudo(voltage, ibf_ka, config_electrode, gap_mm, dist_mm, time_ms, time_min_ms, h_mm, w_mm, d_mm)
         st.markdown("---")
         
-        # --- SEÇÃO 3: INTERMEDIÁRIOS ---
-        st.subheader("3. Resultados Intermediários (Comparativo)")
+        # --- SEÇÃO 3: INTERMEDIÁRIOS (ESTILO UNIFICADO) ---
+        st.subheader("3. Resultados Intermediários")
         
-        r1, r2 = st.columns(2)
-        with r1:
-            st.info("Cenário Nominal") # Header visual simples
-            # Usando st.metric para evitar bugs de CSS
-            m1, m2 = st.columns(2)
-            m1.metric("Energia Nominal", f"{final_res['e_nominal']:.2f} cal/cm²")
-            m2.metric("AFB Nominal", f"{final_res['afb_nominal']:.0f} mm")
+        # Layout: [Nominal 1][Nominal 2]  |  [Reduzido 1][Reduzido 2]
+        # Usamos cartões idênticos aos da Seção 2
+        
+        ri1, ri2 = st.columns(2)
+        
+        with ri1:
+            st.caption("CENÁRIO NOMINAL")
+            c_nom1, c_nom2 = st.columns(2)
+            with c_nom1: card("Energia", f"{final_res['e_nominal']:.2f}", "cal/cm²")
+            with c_nom2: card("AFB", f"{final_res['afb_nominal']:.0f}", "mm")
             
-        with r2:
-            st.info("Cenário Reduzido")
-            m3, m4 = st.columns(2)
-            m3.metric("Energia Reduzida", f"{final_res['e_min']:.2f} cal/cm²")
-            m4.metric("AFB Reduzida", f"{final_res['afb_min']:.0f} mm")
+        with ri2:
+            st.caption("CENÁRIO REDUZIDO")
+            c_red1, c_red2 = st.columns(2)
+            with c_red1: card("Energia", f"{final_res['e_min']:.2f}", "cal/cm²")
+            with c_red2: card("AFB", f"{final_res['afb_min']:.0f}", "mm")
 
-        # --- SEÇÃO 4: FINAL ---
+        # --- SEÇÃO 4: FINAL (HERO CARD) ---
         st.markdown("<br>", unsafe_allow_html=True)
         st.subheader("4. Resultados Finais")
         
         cat_txt, color_hex = obter_categoria_nfpa(final_res['e_final'])
         
-        # Layout Hero Centralizado
-        c_hero, _ = st.columns([1, 0.01]) # Coluna única focada
+        # Layout centralizado
+        c_main, _ = st.columns([1, 0.01])
         
-        with c_hero:
+        with c_main:
             st.markdown(f"""
-            <div class="hero-box" style="border-color: {color_hex};">
-                <div class="hero-title">Energia Incidente Final (Pior Caso)</div>
-                <div class="hero-value" style="color: {color_hex};">
-                    {final_res['e_final']:.2f} <span class="hero-unit">cal/cm²</span>
+            <div class="hero-card" style="border-color: {color_hex};">
+                <div class="hero-label">Energia Incidente Final (Pior Caso)</div>
+                <div class="hero-value" style="color: {color_hex}">{final_res['e_final']:.2f} <span style="font-size:24px; color:#6b7280; font-weight:400;">cal/cm²</span></div>
+                
+                <div style="margin-top: 15px;">
+                    <span style="background-color: {color_hex}; color: white; padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 16px;">
+                        {cat_txt}
+                    </span>
                 </div>
-                <div class="risk-badge" style="background-color: {color_hex};">
-                    {cat_txt}
-                </div>
-                <div class="hero-footer">
-                    Fronteira de Arco (AFB): <b>{final_res['afb_final']:.0f} mm</b> &nbsp;|&nbsp; Cenário Definidor: <b>{final_res['pior_caso']}</b>
+                
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px;">
+                    Fronteira de Arco (AFB): <b>{final_res['afb_final']:.0f} mm</b> &nbsp;•&nbsp; Cenário Definidor: <b>{final_res['pior_caso']}</b>
                 </div>
             </div>
             """, unsafe_allow_html=True)
