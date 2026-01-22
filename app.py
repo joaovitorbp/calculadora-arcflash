@@ -113,6 +113,7 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
     E_final = max(E_cal, E_min_cal)
     AFB_final = max(AFB, AFB_min)
     
+    # Retorna Dicionário Completo para o Relatório
     return {
         "ia_600": Iarc600, "i_arc": Iarc, "i_min": Imin, "var_cf": VarCf,
         "e_nominal": E_cal, "afb_nominal": AFB, "e_min": E_min_cal, "afb_min": AFB_min,
@@ -126,7 +127,7 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
     }
 
 # ==============================================================================
-# 3. FRONTEND: STREAMLIT APP (V29.0)
+# 3. FRONTEND: STREAMLIT APP (V30.0)
 # ==============================================================================
 st.set_page_config(page_title="Calc. Energia Incidente", layout="wide")
 
@@ -163,20 +164,22 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- SIDEBAR (Reorganizada: Identificação Primeiro) ---
+# --- SIDEBAR OTIMIZADA ---
 with st.sidebar:
-    st.header("Identificação")
+    st.header("Dados do Projeto")
+    # Identificação no topo
     equip_name = st.text_input("TAG do Equipamento", value="", key="equip_tag")
-    st.caption("Desenvolvido em Python | IEEE 1584-2018")
     
-    st.divider()
+    st.markdown("---") # Divisória
     
-    st.header("Dados do Cliente")
+    # Dados do Cliente (Abaixo)
     cli_name = st.text_input("Nome do Cliente", value="")
     cli_end = st.text_input("Endereço", value="")
-    col_s1, col_s2 = st.columns(2)
-    with col_s1: cli_cep = st.text_input("CEP", value="")
-    with col_s2: cli_cnpj = st.text_input("CNPJ", value="")
+    # Vertical (um abaixo do outro)
+    cli_cep = st.text_input("CEP", value="")
+    cli_cnpj = st.text_input("CNPJ", value="")
+    
+    st.caption("Desenvolvido em Python | IEEE 1584-2018")
 
 st.title("⚡ Calculadora de Energia Incidente")
 
@@ -388,14 +391,14 @@ if st.session_state.results:
 
         col_d1, col_d2 = st.columns(2)
         
-        # 1. Adesivo (Botão Padronizado)
+        # 1. Adesivo (Botão Padronizado com ícone de etiqueta 🏷️)
         excel_data = preencher_modelo_excel(equip_name)
         if excel_data:
             f_name_xls = f"Adesivo_{equip_name}.xlsx" if equip_name else "Adesivo_ArcFlash.xlsx"
             with col_d1:
-                st.download_button("📥 Baixar Adesivo (.xlsx)", excel_data, f_name_xls, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", type="primary", use_container_width=True)
+                st.download_button("🏷️ Baixar Adesivo (.xlsx)", excel_data, f_name_xls, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", type="primary", use_container_width=True)
 
-        # 2. Relatório (Botão Padronizado)
+        # 2. Relatório (Botão Padronizado com ícone de arquivo 📄)
         docx_data = gerar_relatorio_word(equip_name, cli_name, cli_end, cli_cep, cli_cnpj)
         if docx_data:
             f_name_doc = f"Relatorio_{equip_name}.docx" if equip_name else "Relatorio_ArcFlash.docx"
