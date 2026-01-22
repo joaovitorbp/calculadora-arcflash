@@ -39,28 +39,21 @@ def calcular_ees_correto(C, H, W, D, V):
     return (H1 + W1)/2, "Typical (Típico)", H1, W1
 
 def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_mm):
-    # Verificações de segurança
     if any(v is None for v in [Voc_V, Ibf, Config, Gap, Dist, H_mm, W_mm, D_mm]):
         return None
     if Ibf <= 0 or Gap <= 0 or Dist <= 0:
         return None
 
     Voc = Voc_V / 1000.0
-    
-    # 1. Correntes
     k = TABLE_1[Config]
     term1 = 10 ** (k[0] + k[1]*log10(Ibf) + k[2]*log10(Gap))
     term2 = (k[3]*Ibf**6 + k[4]*Ibf**5 + k[5]*Ibf**4 + k[6]*Ibf**3 + k[7]*Ibf**2 + k[8]*Ibf + k[9])
     Iarc600 = term1 * term2
-    
     term_a = (0.6/Voc)**2
     term_b = (1/Iarc600)**2 - ((0.6**2 - Voc**2)/(0.6**2 * Ibf**2))
-    
     if term_a * term_b <= 0: return None
-    
     Iarc = 1 / math.sqrt(term_a * term_b)
     
-    # 2. Caixa
     is_open = Config in ['VOA', 'HOA']
     if is_open: 
         CF, box_type, EES, H1, W1 = 1.0, "Open Air (Ar Livre)", 0.0, 0.0, 0.0
@@ -71,16 +64,12 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
         CF = 1/(b[0]*EES**2 + b[1]*EES + b[2]) if "Shallow" in box_type else b[0]*EES**2 + b[1]*EES + b[2]
         b_coeffs = b
 
-    # 3. Imin
     vk = TABLE_2[Config]
     VarCf = vk[0]*Voc**6 + vk[1]*Voc**5 + vk[2]*Voc**4 + vk[3]*Voc**3 + vk[4]*Voc**2 + vk[5]*Voc + vk[6]
     Imin = Iarc * (1 - 0.5 * VarCf)
     
-    # Trata None como 0 para cálculo temporário
     T_calc_nom = T_ms if T_ms is not None else 0
     T_calc_min = T_min_ms if T_min_ms is not None else 0
-    
-    # 4. Energias
     tk = TABLE_3[Config]
     
     def get_energy(I_curr, Time):
@@ -94,7 +83,6 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
 
     E_cal, AFB, exp1, C2_final, C3_final = get_energy(Iarc, T_calc_nom)
     E_min_cal, AFB_min, exp2, _, _ = get_energy(Imin, T_calc_min)
-    
     E_final = max(E_cal, E_min_cal)
     AFB_final = max(AFB, AFB_min)
     
@@ -106,51 +94,87 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
         "pior_caso": "Nominal" if E_final == E_cal else "Reduzida",
         "k": k, "tk": tk, "vk": vk, "b": b_coeffs,
         "C2": C2_final, "C3": C3_final,
-        "exp1": exp1, "exp2": exp2,
-        "term1": term1, "term2": term2,
-        "voc": Voc, "ibf": Ibf, "gap": Gap, "dist": Dist
+        "exp1": exp1, "exp2": exp2, "term1": term1, "term2": term2, "voc": Voc, "ibf": Ibf, "gap": Gap, "dist": Dist
     }
 
 # ==============================================================================
-# 3. FRONTEND: STREAMLIT APP (V6.0)
+# 3. FRONTEND: STREAMLIT APP (V7.0)
 # ==============================================================================
 st.set_page_config(page_title="Calc. Energia Incidente", layout="wide")
 
 st.markdown("""
 <style>
-    /* Estilo dos Boxes de Corrente (Menos destaque) */
+    /* 1. CSS PARA REMOVER O "X" E SETAS DOS INPUTS */
+    /* Chrome, Safari, Edge, Opera */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+    /* Remove o botão 'X' de limpar no Edge/IE */
+    input[type="search"]::-ms-clear { display: none; width : 0; height: 0; }
+    input[type="search"]::-ms-reveal { display: none; width : 0; height: 0; }
+    input[type="search"]::-webkit-search-decoration,
+    input[type="search"]::-webkit-search-cancel-button,
+    input[type="search"]::-webkit-search-results-button,
+    input[type="search"]::-webkit-search-results-decoration { display: none; }
+
+    /* 2. PADRONIZAÇÃO VISUAL (CAIXAS BRANCAS/CINZAS) */
     .info-box { 
-        background-color: #f8f9fa; /* Fundo bem claro */
-        padding: 10px; 
+        background-color: #f8f9fa;
+        padding: 12px; 
         border-radius: 6px; 
         text-align: center; 
         border: 1px solid #e0e0e0; 
         height: 100%;
-        color: #333 !important; 
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
     }
     .info-label {
         font-size: 13px;
-        color: #666 !important;
+        color: #666;
         font-weight: 500;
-        margin-bottom: 5px;
+        margin-bottom: 4px;
     }
     .info-value {
-        font-size: 18px; /* Fonte reduzida (era 24px) */
+        font-size: 18px;
         font-weight: bold;
-        color: #0056b3 !important; /* Azul mais sóbrio */
+        color: #0056b3;
     }
     
-    /* Estilo do Box de Risco (Resultado Final - Destaque Mantido) */
+    /* 3. DESTAQUE PARA RESULTADO FINAL */
+    .final-result-box {
+        background-color: #e3f2fd; /* Azul bem claro */
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        border: 2px solid #2196f3; /* Borda Azul Forte */
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .final-label {
+        font-size: 16px;
+        color: #0d47a1;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .final-value {
+        font-size: 36px;
+        font-weight: 800;
+        color: #0d47a1;
+        margin: 10px 0;
+    }
+    
     .risk-box { color: white; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 20px; }
-    
-    /* Centralização de inputs */
     .stNumberInput input { text-align: center; }
-    
-    /* Detalhes */
     .detail-row { border-bottom: 1px solid #eee; padding: 8px 0; font-family: monospace; font-size: 14px; }
     .detail-label { font-weight: bold; color: #444; }
     .detail-val { color: #007bff; float: right; }
-    .sub-result { background-color: #fff; padding: 10px; border-radius: 5px; border: 1px solid #ddd; text-align: center; color: #000;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -167,136 +191,105 @@ st.subheader("1. Dados do Sistema Elétrico")
 c1, c2, c3, c4 = st.columns(4)
 voltage = c1.selectbox("Tensão (V)", [220, 380, 440, 480], index=None, placeholder="Selecione...")
 config_electrode = c2.selectbox("Configuração", ["VCB", "VCBB", "HCB", "VOA", "HOA"], index=None, placeholder="Selecione...")
-
-# Icc continua Float
 ibf_ka = c3.number_input("Icc - Curto Circuito (kA)", min_value=0.0, value=None, step=1.0, format="%.2f")
-
-# Gap vira Inteiro (step=1, format="%d", min_value=0)
 gap_mm = c4.number_input("Gap entre Condutores (mm)", min_value=0, value=None, step=1, format="%d")
 
 c5, c6, c7, c8 = st.columns(4)
-# Distância vira Inteiro
 dist_mm = c5.number_input("Dist. Trabalho (mm)", min_value=0, value=None, step=1, format="%d")
-
 is_open = config_electrode in ['VOA', 'HOA']
-# Dimensões viram Inteiros
 h_mm = c6.number_input("Altura Painel (H) [mm]", min_value=0, value=None, step=1, disabled=is_open, format="%d")
 w_mm = c7.number_input("Largura Painel (W) [mm]", min_value=0, value=None, step=1, disabled=is_open, format="%d")
 d_mm = c8.number_input("Profundidade (D) [mm]", min_value=0, value=None, step=1, disabled=is_open, format="%d")
 
 st.markdown("---")
-
-# --- PRÉ-CÁLCULO AUTOMÁTICO ---
 pre_res = calcular_tudo(voltage, ibf_ka, config_electrode, gap_mm, dist_mm, 0, 0, h_mm, w_mm, d_mm)
 
 # --- SEÇÃO 2: PROTEÇÃO E TEMPOS ---
 st.subheader("2. Definição de Tempos de Proteção")
 
 cp1, cp2 = st.columns(2)
+# Funçãozinha para criar box padronizado
+def make_info_box(label, value):
+    st.markdown(f"""<div class="info-box"><div class="info-label">{label}</div><div class="info-value">{value}</div></div>""", unsafe_allow_html=True)
 
 with cp1:
     st.markdown("##### Cenário Nominal")
     col_a, col_b = st.columns([1, 1.5])
-    
     val_iarc = f"{pre_res['i_arc']:.3f} kA" if pre_res else "- kA"
-    
-    with col_a:
-        # Box de Corrente com estilo mais discreto (font 18px)
-        st.markdown(f"""
-        <div class="info-box">
-            <div class="info-label">Corrente (Iarc)</div>
-            <div class="info-value">{val_iarc}</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col_b:
-        time_ms = st.number_input("Tempo de Atuação (ms)", min_value=0.0, value=None, step=0.1, format="%.1f", key="t_nom")
+    with col_a: make_info_box("Corrente (Iarc)", val_iarc)
+    with col_b: time_ms = st.number_input("Tempo de Atuação (ms)", min_value=0.0, value=None, step=0.1, format="%.1f", key="t_nom")
 
 with cp2:
     st.markdown("##### Cenário Reduzido")
     col_c, col_d = st.columns([1, 1.5])
-    
     val_imin = f"{pre_res['i_min']:.3f} kA" if pre_res else "- kA"
-    
-    with col_c:
-        # Box de Corrente com estilo mais discreto
-        st.markdown(f"""
-        <div class="info-box">
-            <div class="info-label">Corrente (Imin)</div>
-            <div class="info-value">{val_imin}</div>
-        </div>
-        """, unsafe_allow_html=True)
-    with col_d:
-        time_min_ms = st.number_input("Tempo de Atuação (ms)", min_value=0.0, value=None, step=0.1, format="%.1f", key="t_min")
+    with col_c: make_info_box("Corrente (Imin)", val_imin)
+    with col_d: time_min_ms = st.number_input("Tempo de Atuação (ms)", min_value=0.0, value=None, step=0.1, format="%.1f", key="t_min")
 
 st.markdown("<br>", unsafe_allow_html=True)
-
-# --- BOTÃO PARA CALCULAR ---
 calc_btn = st.button("CALCULAR ENERGIA FINAL", type="primary", use_container_width=True)
 
 # --- SEÇÃO 3: RESULTADOS ---
 if calc_btn:
     if not pre_res:
-        st.warning("⚠️ Preencha todos os dados do sistema (Seção 1) antes de calcular.")
+        st.warning("⚠️ Preencha os dados do sistema primeiro.")
     elif time_ms is None and time_min_ms is None:
         st.warning("⚠️ Preencha pelo menos um tempo de atuação.")
     else:
         final_res = calcular_tudo(voltage, ibf_ka, config_electrode, gap_mm, dist_mm, time_ms, time_min_ms, h_mm, w_mm, d_mm)
-        
         st.markdown("---")
         st.subheader("3. Resultados do Estudo")
         
-        # 3.1 Comparativo
+        # 3.1 Comparativo Visualmente Idêntico às Correntes
         r1, r2 = st.columns(2)
         with r1:
-            st.markdown(f"""<div class="sub-result"><strong>Cenário Nominal</strong><br>Energia: <b>{final_res['e_nominal']:.2f} cal/cm²</b><br>AFB: <b>{final_res['afb_nominal']:.0f} mm</b></div>""", unsafe_allow_html=True)
+            st.markdown("##### Resultado Nominal")
+            rc1, rc2 = st.columns(2)
+            with rc1: make_info_box("Energia Nominal", f"{final_res['e_nominal']:.2f} cal/cm²")
+            with rc2: make_info_box("AFB Nominal", f"{final_res['afb_nominal']:.0f} mm")
+            
         with r2:
-            st.markdown(f"""<div class="sub-result"><strong>Cenário Reduzido</strong><br>Energia: <b>{final_res['e_min']:.2f} cal/cm²</b><br>AFB: <b>{final_res['afb_min']:.0f} mm</b></div>""", unsafe_allow_html=True)
+            st.markdown("##### Resultado Reduzido")
+            rc3, rc4 = st.columns(2)
+            with rc3: make_info_box("Energia Reduzida", f"{final_res['e_min']:.2f} cal/cm²")
+            with rc4: make_info_box("AFB Reduzido", f"{final_res['afb_min']:.0f} mm")
 
-        # 3.2 Resultado Final (Destaque Mantido)
+        # 3.2 Resultado Final (SUPER DESTAQUE)
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("#### ✅ Resultado Final (Pior Caso)")
         
         cat_txt, color_hex = obter_categoria_nfpa(final_res['e_final'])
-        rf1, rf2, rf3 = st.columns([1, 1, 1.5])
+        
+        # Layout de 3 colunas focado no destaque central
+        rf1, rf2 = st.columns([2, 1])
+        
         with rf1:
-            st.metric("Energia Incidente Final", f"{final_res['e_final']:.2f} cal/cm²")
-            st.caption(f"Definido pelo cenário: {final_res['pior_caso']}")
+            # Box de Destaque Personalizado
+            st.markdown(f"""
+            <div class="final-result-box">
+                <div class="final-label">Energia Incidente Final (Pior Caso)</div>
+                <div class="final-value">{final_res['e_final']:.2f} cal/cm²</div>
+                <div style="font-size:14px; color:#555;">Fronteira de Arco (AFB): <b>{final_res['afb_final']:.0f} mm</b></div>
+            </div>
+            """, unsafe_allow_html=True)
+            
         with rf2:
-            st.metric("Fronteira de Arco (AFB)", f"{final_res['afb_final']:.0f} mm")
-        with rf3:
-            st.markdown(f"""<div class="risk-box" style="background-color: {color_hex};">{cat_txt}</div>""", unsafe_allow_html=True)
+            # Box de Risco (Categoria)
+            st.markdown(f"""
+            <div style="height:100%; display:flex; align-items:center;">
+                <div class="risk-box" style="background-color: {color_hex}; width:100%;">
+                    {cat_txt}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
         # 3.3 Memória
         st.markdown("<br>", unsafe_allow_html=True)
-        with st.expander("📝 Memória de Cálculo Detalhada (Coeficientes e Variáveis)"):
+        with st.expander("📝 Memória de Cálculo Detalhada"):
             d = final_res
             def row(label, val, unit=""):
                 st.markdown(f"""<div class="detail-row"><span class="detail-label">{label}</span><span class="detail-val">{val} {unit}</span></div>""", unsafe_allow_html=True)
             
-            st.markdown("#### 1. Parâmetros de Entrada")
-            row("Tensão (Voc)", d['voc']*1000, "V")
-            row("Icc (Ibf)", d['ibf'], "kA")
-            row("Gap (G)", d['gap'], "mm")
-            row("Distância (D)", d['dist'], "mm")
-            
-            st.markdown("#### 2. Coeficientes da Tabela 1")
-            for i, val in enumerate(d['k']): row(f"k{i+1}", val)
-            
-            st.markdown("#### 3. Cálculo de Correntes")
-            row("Iarc_600 (Base)", f"{d['ia_600']:.4f}", "kA")
-            row("Iarc (Nominal)", f"{d['i_arc']:.4f}", "kA")
-            row("VarCf (Fator Imin)", f"{d['var_cf']:.4f}")
-            row("Imin (Reduzida)", f"{d['i_min']:.4f}", "kA")
-            
-            st.markdown("#### 4. Ajuste de Invólucro")
-            row("Tipo", d['box_type'])
-            row("EES", f"{d['ees']:.4f}", "in")
-            row("CF", f"{d['cf']:.4f}")
-            if d['b']: 
-                for i, val in enumerate(d['b']): row(f"b{i+1}", val)
-            
-            st.markdown("#### 5. Energias")
-            row("Expoente (Nominal)", f"{d['exp1']:.4f}")
-            row("Expoente (Reduzida)", f"{d['exp2']:.4f}")
-            row("Energia (Nominal)", f"{d['e_nominal']:.4f}", "cal/cm²")
-            row("Energia (Reduzida)", f"{d['e_min']:.4f}", "cal/cm²")
+            st.markdown("#### 1. Parâmetros")
+            row("Voc", d['voc']*1000, "V"); row("Ibf", d['ibf'], "kA"); row("G", d['gap'], "mm"); row("D", d['dist'], "mm")
+            st.markdown("#### 2. Correntes"); row("Iarc", f"{d['i_arc']:.4f}", "kA"); row("Imin", f"{d['i_min']:.4f}", "kA")
+            st.markdown("#### 3. Energias"); row("E_Nom", f"{d['e_nominal']:.4f}", "cal"); row("E_Red", f"{d['e_min']:.4f}", "cal")
