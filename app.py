@@ -19,12 +19,12 @@ CONSTANTS_AB = {'VCB':  {'A': 4,  'B': 20}, 'VCBB': {'A': 10, 'B': 24}, 'HCB':  
 def log10(x): return math.log10(x) if x > 0 else 0
 
 def obter_categoria_nfpa(e):
-    if e <= 1.2: return "Isento (&lt; 1.2)", "#28a745" # HTML safe
-    if e <= 4.0: return "Categoria 1", "#ffc107"
-    if e <= 8.0: return "Categoria 2", "#fd7e14"
-    if e <= 25.0: return "Categoria 3", "#dc3545"
-    if e <= 40.0: return "Categoria 4", "#6f42c1"
-    return "PERIGO EXTREMO", "#000000"
+    if e <= 1.2: return "Isento (&lt; 1.2)", "#28a745" # Verde
+    if e <= 4.0: return "Categoria 1", "#ffc107" # Amarelo
+    if e <= 8.0: return "Categoria 2", "#fd7e14" # Laranja
+    if e <= 25.0: return "Categoria 3", "#dc3545" # Vermelho
+    if e <= 40.0: return "Categoria 4", "#6f42c1" # Roxo
+    return "PERIGO EXTREMO", "#000000" # Preto
 
 def calcular_ajuste_linear(d, v, c):
     if c not in CONSTANTS_AB: return d / 25.4
@@ -98,7 +98,7 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
     }
 
 # ==============================================================================
-# 3. FRONTEND: STREAMLIT APP (V12.0 FINAL)
+# 3. FRONTEND: STREAMLIT APP (V13.0 FINAL)
 # ==============================================================================
 st.set_page_config(page_title="Calc. Energia Incidente", layout="wide")
 
@@ -119,22 +119,54 @@ st.markdown("""
         text-align: center;
         color: #1f2937; 
     }
-    .card-label { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 8px; }
-    .card-value { font-size: 20px; font-weight: 700; color: #111827; }
+    
+    .card-label {
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6b7280;
+        margin-bottom: 8px;
+    }
+    
+    .card-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #111827; 
+    }
+    
     .card-unit { font-size: 14px; font-weight: 400; color: #6b7280; }
 
-    /* 2. Cartão de Destaque Final (HERO) */
-    .hero-card {
+    /* 2. Cartão de Resultado Final (Igual peso para os 3 itens) */
+    .final-card {
         background-color: #ffffff;
-        border: 2px solid #e5e7eb; 
+        border: 2px solid #e5e7eb; /* Será sobrescrito via inline style */
         border-radius: 12px;
-        padding: 30px;
+        padding: 20px;
         text-align: center;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        margin-top: 10px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
     }
-    .hero-label { font-size: 16px; font-weight: 700; text-transform: uppercase; color: #374151; margin-bottom: 10px; }
-    .hero-value { font-size: 48px; font-weight: 800; margin: 10px 0; color: #111827; }
+    
+    .final-label {
+        font-size: 14px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #6b7280;
+        margin-bottom: 12px;
+    }
+    
+    .final-value {
+        font-size: 32px; /* Fonte Grande para Destaque */
+        font-weight: 800;
+        /* Cor definida inline */
+    }
+    
+    .final-unit { font-size: 18px; font-weight: 500; color: #9ca3af; }
     
     /* Utilitários */
     .stNumberInput input { text-align: center; }
@@ -238,25 +270,40 @@ if calc_btn:
             with c_red1: card("Energia", f"{final_res['e_min']:.2f}", "cal/cm²")
             with c_red2: card("AFB", f"{final_res['afb_min']:.0f}", "mm")
 
-        # --- SEÇÃO 4: FINAL (HERO CARD CORRIGIDO) ---
+        # --- SEÇÃO 4: FINAL (PESO VISUAL IGUALADO) ---
         st.markdown("<br>", unsafe_allow_html=True)
-        st.subheader("4. Resultados Finais")
+        st.subheader(f"4. Resultados Finais (Pior Caso: {final_res['pior_caso']})")
         
         cat_txt, color_hex = obter_categoria_nfpa(final_res['e_final'])
         
-        c_main, _ = st.columns([1, 0.01])
-        with c_main:
-            # AQUI ESTÁ A CORREÇÃO: Removi toda a indentação do HTML para evitar bugs de markdown
-            st.markdown(f"""<div class="hero-card" style="border-color: {color_hex};">
-<div class="hero-label">Energia Incidente Final (Pior Caso)</div>
-<div class="hero-value" style="color: {color_hex}">{final_res['e_final']:.2f} <span style="font-size:24px; color:#6b7280; font-weight:400;">cal/cm²</span></div>
-<div style="margin-top: 15px;">
-<span style="background-color: {color_hex}; color: white; padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 16px;">{cat_txt}</span>
-</div>
-<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px;">
-Fronteira de Arco (AFB): <b>{final_res['afb_final']:.0f} mm</b> &nbsp;•&nbsp; Cenário Definidor: <b>{final_res['pior_caso']}</b>
-</div>
-</div>""", unsafe_allow_html=True)
+        # Layout de 3 Colunas iguais
+        cf1, cf2, cf3 = st.columns(3)
+        
+        # Helper para cartão final
+        def final_card(label, value, unit, color):
+            st.markdown(f"""
+            <div class="final-card" style="border-color: {color};">
+                <div class="final-label">{label}</div>
+                <div class="final-value" style="color: {color};">{value} <span class="final-unit">{unit}</span></div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with cf1:
+            final_card("Energia Incidente", f"{final_res['e_final']:.2f}", "cal/cm²", color_hex)
+            
+        with cf2:
+            final_card("Fronteira de Arco (AFB)", f"{final_res['afb_final']:.0f}", "mm", color_hex)
+            
+        with cf3:
+            # Cartão especial para Categoria (Texto como badge)
+            st.markdown(f"""
+            <div class="final-card" style="border-color: {color_hex};">
+                <div class="final-label">Categoria de Risco</div>
+                <div style="background-color: {color_hex}; color: white; padding: 5px 20px; border-radius: 20px; font-weight: 700; font-size: 24px; white-space: nowrap;">
+                    {cat_txt}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
         # Memória
         st.markdown("<br>", unsafe_allow_html=True)
