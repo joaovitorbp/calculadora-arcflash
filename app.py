@@ -19,12 +19,12 @@ CONSTANTS_AB = {'VCB':  {'A': 4,  'B': 20}, 'VCBB': {'A': 10, 'B': 24}, 'HCB':  
 def log10(x): return math.log10(x) if x > 0 else 0
 
 def obter_categoria_nfpa(e):
-    if e <= 1.2: return "Isento (< 1.2)", "#28a745"
-    if e <= 4.0: return "Categoria 1", "#ffc107"
-    if e <= 8.0: return "Categoria 2", "#fd7e14"
-    if e <= 25.0: return "Categoria 3", "#dc3545"
-    if e <= 40.0: return "Categoria 4", "#6f42c1"
-    return "PERIGO EXTREMO", "#000000"
+    if e <= 1.2: return "Isento (< 1.2)", "#28a745" # Verde
+    if e <= 4.0: return "Categoria 1", "#ffc107" # Amarelo
+    if e <= 8.0: return "Categoria 2", "#fd7e14" # Laranja
+    if e <= 25.0: return "Categoria 3", "#dc3545" # Vermelho
+    if e <= 40.0: return "Categoria 4", "#6f42c1" # Roxo
+    return "PERIGO EXTREMO", "#000000" # Preto
 
 def calcular_ajuste_linear(d, v, c):
     if c not in CONSTANTS_AB: return d / 25.4
@@ -98,31 +98,19 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
     }
 
 # ==============================================================================
-# 3. FRONTEND: STREAMLIT APP (V7.0)
+# 3. FRONTEND: STREAMLIT APP (V8.0 FINAL)
 # ==============================================================================
 st.set_page_config(page_title="Calc. Energia Incidente", layout="wide")
 
 st.markdown("""
 <style>
-    /* 1. CSS PARA REMOVER O "X" E SETAS DOS INPUTS */
-    /* Chrome, Safari, Edge, Opera */
-    input::-webkit-outer-spin-button,
-    input::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-    input[type=number] {
-      -moz-appearance: textfield;
-    }
-    /* Remove o botão 'X' de limpar no Edge/IE */
-    input[type="search"]::-ms-clear { display: none; width : 0; height: 0; }
-    input[type="search"]::-ms-reveal { display: none; width : 0; height: 0; }
-    input[type="search"]::-webkit-search-decoration,
-    input[type="search"]::-webkit-search-cancel-button,
-    input[type="search"]::-webkit-search-results-button,
-    input[type="search"]::-webkit-search-results-decoration { display: none; }
+    /* RESET DE INPUTS */
+    input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+    input[type="search"]::-ms-clear, input[type="search"]::-ms-reveal { display: none; width : 0; height: 0; }
+    input[type="search"]::-webkit-search-decoration, input[type="search"]::-webkit-search-cancel-button, input[type="search"]::-webkit-search-results-button, input[type="search"]::-webkit-search-results-decoration { display: none; }
 
-    /* 2. PADRONIZAÇÃO VISUAL (CAIXAS BRANCAS/CINZAS) */
+    /* ESTILO PADRÃO DE BOX (CORRENTES E CENÁRIOS) */
     .info-box { 
         background-color: #f8f9fa;
         padding: 12px; 
@@ -134,43 +122,53 @@ st.markdown("""
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    .info-label {
-        font-size: 13px;
-        color: #666;
-        font-weight: 500;
-        margin-bottom: 4px;
-    }
-    .info-value {
-        font-size: 18px;
-        font-weight: bold;
-        color: #0056b3;
-    }
-    
-    /* 3. DESTAQUE PARA RESULTADO FINAL */
-    .final-result-box {
-        background-color: #e3f2fd; /* Azul bem claro */
-        padding: 20px;
+    .info-label { font-size: 13px; color: #666; font-weight: 500; margin-bottom: 4px; }
+    .info-value { font-size: 18px; font-weight: bold; color: #0056b3; }
+
+    /* ESTILO DE CARD PARA SEPARAÇÃO NA SEÇÃO 3 */
+    .scenario-card {
+        background-color: #ffffff;
+        padding: 15px;
         border-radius: 10px;
-        text-align: center;
-        border: 2px solid #2196f3; /* Borda Azul Forte */
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border: 1px solid #f0f0f0;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        height: 100%;
     }
-    .final-label {
+    .scenario-title {
         font-size: 16px;
-        color: #0d47a1;
         font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 1px;
+        color: #333;
+        margin-bottom: 15px;
+        text-align: center;
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 10px;
     }
-    .final-value {
-        font-size: 36px;
-        font-weight: 800;
-        color: #0d47a1;
-        margin: 10px 0;
+
+    /* DIVISÓRIA VERTICAL */
+    .vertical-line {
+        border-left: 2px solid #e0e0e0;
+        height: 100%;
+        margin: 0 auto;
+        width: 1px;
     }
-    
-    .risk-box { color: white; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 20px; }
+
+    /* DESTAQUE FINAL (HERO BOX) */
+    .hero-box {
+        background-color: #ffffff;
+        padding: 30px;
+        border-radius: 15px;
+        text-align: center;
+        border: 4px solid #ddd; /* Cor base, muda dinamicamente */
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        margin-top: 20px;
+    }
+    .hero-label { font-size: 18px; color: #555; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+    .hero-value { font-size: 48px; font-weight: 800; color: #333; margin: 10px 0; }
+    .hero-sub { font-size: 16px; color: #777; margin-top: 10px; }
+    .risk-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; color: white; font-weight: bold; margin-top: 10px; font-size: 18px;}
+
     .stNumberInput input { text-align: center; }
     .detail-row { border-bottom: 1px solid #eee; padding: 8px 0; font-family: monospace; font-size: 14px; }
     .detail-label { font-weight: bold; color: #444; }
@@ -187,7 +185,6 @@ st.title("⚡ Calculadora de Energia Incidente")
 
 # --- SEÇÃO 1: DADOS DO SISTEMA ---
 st.subheader("1. Dados do Sistema Elétrico")
-
 c1, c2, c3, c4 = st.columns(4)
 voltage = c1.selectbox("Tensão (V)", [220, 380, 440, 480], index=None, placeholder="Selecione...")
 config_electrode = c2.selectbox("Configuração", ["VCB", "VCBB", "HCB", "VOA", "HOA"], index=None, placeholder="Selecione...")
@@ -208,7 +205,7 @@ pre_res = calcular_tudo(voltage, ibf_ka, config_electrode, gap_mm, dist_mm, 0, 0
 st.subheader("2. Definição de Tempos de Proteção")
 
 cp1, cp2 = st.columns(2)
-# Funçãozinha para criar box padronizado
+# Função box padrão
 def make_info_box(label, value):
     st.markdown(f"""<div class="info-box"><div class="info-label">{label}</div><div class="info-value">{value}</div></div>""", unsafe_allow_html=True)
 
@@ -240,47 +237,40 @@ if calc_btn:
         st.markdown("---")
         st.subheader("3. Resultados do Estudo")
         
-        # 3.1 Comparativo Visualmente Idêntico às Correntes
-        r1, r2 = st.columns(2)
-        with r1:
-            st.markdown("##### Resultado Nominal")
-            rc1, rc2 = st.columns(2)
-            with rc1: make_info_box("Energia Nominal", f"{final_res['e_nominal']:.2f} cal/cm²")
-            with rc2: make_info_box("AFB Nominal", f"{final_res['afb_nominal']:.0f} mm")
-            
-        with r2:
-            st.markdown("##### Resultado Reduzido")
-            rc3, rc4 = st.columns(2)
-            with rc3: make_info_box("Energia Reduzida", f"{final_res['e_min']:.2f} cal/cm²")
-            with rc4: make_info_box("AFB Reduzido", f"{final_res['afb_min']:.0f} mm")
-
-        # 3.2 Resultado Final (SUPER DESTAQUE)
-        st.markdown("<br>", unsafe_allow_html=True)
+        # 3.1 COMPARATIVO COM SEPARAÇÃO VISUAL (CARDS + DIVIDER)
+        # Layout de 3 colunas: [Card Nominal] [Divisor] [Card Reduzido]
+        r1, r_sep, r2 = st.columns([1, 0.1, 1])
         
+        with r1:
+            st.markdown("""<div class="scenario-card"><div class="scenario-title">CENÁRIO NOMINAL</div>""", unsafe_allow_html=True)
+            rc1, rc2 = st.columns(2)
+            with rc1: make_info_box("Energia", f"{final_res['e_nominal']:.2f} cal/cm²")
+            with rc2: make_info_box("AFB", f"{final_res['afb_nominal']:.0f} mm")
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+        with r_sep:
+            # Gambiarra elegante para linha vertical centralizada
+            st.markdown("""<div style="display:flex; justify-content:center; height:100%; align-items:center;"><div class="vertical-line"></div></div>""", unsafe_allow_html=True)
+
+        with r2:
+            st.markdown("""<div class="scenario-card"><div class="scenario-title">CENÁRIO REDUZIDO</div>""", unsafe_allow_html=True)
+            rc3, rc4 = st.columns(2)
+            with rc3: make_info_box("Energia", f"{final_res['e_min']:.2f} cal/cm²")
+            with rc4: make_info_box("AFB", f"{final_res['afb_min']:.0f} mm")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        # 3.2 SUPER DESTAQUE FINAL
         cat_txt, color_hex = obter_categoria_nfpa(final_res['e_final'])
         
-        # Layout de 3 colunas focado no destaque central
-        rf1, rf2 = st.columns([2, 1])
-        
-        with rf1:
-            # Box de Destaque Personalizado
-            st.markdown(f"""
-            <div class="final-result-box">
-                <div class="final-label">Energia Incidente Final (Pior Caso)</div>
-                <div class="final-value">{final_res['e_final']:.2f} cal/cm²</div>
-                <div style="font-size:14px; color:#555;">Fronteira de Arco (AFB): <b>{final_res['afb_final']:.0f} mm</b></div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        with rf2:
-            # Box de Risco (Categoria)
-            st.markdown(f"""
-            <div style="height:100%; display:flex; align-items:center;">
-                <div class="risk-box" style="background-color: {color_hex}; width:100%;">
-                    {cat_txt}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+        # Cria um container centralizado para o resultado
+        st.markdown(f"""
+        <div class="hero-box" style="border-color: {color_hex};">
+            <div class="hero-label">Energia Incidente Final (Pior Caso)</div>
+            <div class="hero-value" style="color: {color_hex};">{final_res['e_final']:.2f} <span style="font-size:24px; color:#555">cal/cm²</span></div>
+            <div class="risk-badge" style="background-color: {color_hex};">{cat_txt}</div>
+            <div class="hero-sub">Fronteira de Arco (AFB): <b>{final_res['afb_final']:.0f} mm</b> | Cenário: {final_res['pior_caso']}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
         # 3.3 Memória
         st.markdown("<br>", unsafe_allow_html=True)
