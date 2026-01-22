@@ -99,7 +99,7 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
     }
 
 # ==============================================================================
-# 3. FRONTEND: STREAMLIT APP (V18.0 FINAL AJUSTADA)
+# 3. FRONTEND: STREAMLIT APP (V19.0 FINAL CLEAN)
 # ==============================================================================
 st.set_page_config(page_title="Calc. Energia Incidente", layout="wide")
 
@@ -171,8 +171,6 @@ st.markdown("""
     }
     .summary-item { display: flex; align-items: center; gap: 6px; }
     .summary-label { font-weight: 500; color: #6b7280; }
-    
-    /* MODIFICAÇÃO: Cor neutra para o texto do EPI */
     .summary-val-bold { font-weight: 700; color: #1f2937; text-transform: uppercase;}
 
     /* Utilitários */
@@ -227,7 +225,6 @@ def card(label, value, unit="", color="#0056b3"):
     </div>
     """, unsafe_allow_html=True)
 
-# Layout de 3 Colunas com Separador Vertical
 cp1, cp_sep, cp2 = st.columns([1, 0.1, 1])
 
 with cp1:
@@ -258,6 +255,7 @@ if calc_btn:
         st.warning("⚠️ Preencha pelo menos um tempo de atuação.")
     else:
         final_res = calcular_tudo(voltage, ibf_ka, config_electrode, gap_mm, dist_mm, time_ms, time_min_ms, h_mm, w_mm, d_mm)
+        
         st.markdown("---")
         
         # --- SEÇÃO 3: INTERMEDIÁRIOS ---
@@ -280,7 +278,7 @@ if calc_btn:
             with c_red2: card("Fronteira de Arco (AFB)", f"{final_res['afb_min']:.0f}", "mm")
 
         # --- SEÇÃO 4: FINAL ---
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("---")
         st.subheader(f"4. Resultados Finais")
         
         cat_name, color_hex, cat_rate = obter_categoria_nfpa(final_res['e_final'])
@@ -306,7 +304,7 @@ if calc_btn:
             </div>
             """, unsafe_allow_html=True)
 
-        # Rodapé Discreto (Texto Neutro - Sem Cor)
+        # Rodapé Discreto
         st.markdown(f"""
         <div class="summary-footer">
             <div class="summary-item">
@@ -320,15 +318,3 @@ if calc_btn:
             </div>
         </div>
         """, unsafe_allow_html=True)
-
-        # Memória
-        st.markdown("<br>", unsafe_allow_html=True)
-        with st.expander("📝 Memória de Cálculo Detalhada"):
-            d = final_res
-            def row(label, val, unit=""):
-                st.markdown(f"""<div class="detail-row"><span class="detail-label">{label}</span><span class="detail-val">{val} {unit}</span></div>""", unsafe_allow_html=True)
-            
-            st.markdown("#### 1. Parâmetros")
-            row("Voc", d['voc']*1000, "V"); row("Ibf", d['ibf'], "kA"); row("G", d['gap'], "mm"); row("D", d['dist'], "mm")
-            st.markdown("#### 2. Correntes"); row("Iarc", f"{d['i_arc']:.4f}", "kA"); row("Imin", f"{d['i_min']:.4f}", "kA")
-            st.markdown("#### 3. Energias"); row("E_Nom", f"{d['e_nominal']:.4f}", "cal"); row("E_Red", f"{d['e_min']:.4f}", "cal")
