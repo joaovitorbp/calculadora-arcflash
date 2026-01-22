@@ -78,7 +78,13 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
         C3 = tk[10]*log10(Ibf) + tk[11]*log10(Dist) + log10(1/CF)
         exponent = tk[0] + tk[1]*log10(Gap) + (tk[2]*Iarc600/C2) + C3 + tk[12]*log10(I_curr)
         E = ((12.552/50)*Time*(10**exponent))/4.184
-        AFB = Dist * (1.2/E)**(1/tk[11])
+        
+        # [CORREÇÃO AQUI]: Se Energia for 0 (Tempo 0), AFB é 0. Evita ZeroDivisionError.
+        if E > 0:
+            AFB = Dist * (1.2/E)**(1/tk[11])
+        else:
+            AFB = 0
+            
         return E, AFB, exponent, C2, C3
 
     E_cal, AFB, exp1, C2_final, C3_final = get_energy(Iarc, T_ms)
@@ -87,24 +93,22 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
     E_final = max(E_cal, E_min_cal)
     AFB_final = max(AFB, AFB_min)
     
-    # Retorna Dicionário Completo para Memória de Cálculo
+    # Retorna Dicionário Completo
     return {
         "ia_600": Iarc600, "i_arc": Iarc, "i_min": Imin, "var_cf": VarCf,
         "box_type": box_type, "ees": EES, "cf": CF, "h1": H1, "w1": W1,
         "e_nominal": E_cal, "afb_nominal": AFB, "e_min": E_min_cal, "afb_min": AFB_min,
         "e_final": E_final, "afb_final": AFB_final,
         "pior_caso": "Nominal" if E_final == E_cal else "Reduzida",
-        # Coeficientes Brutos
         "k": k, "tk": tk, "vk": vk, "b": b_coeffs,
         "C2": C2_final, "C3": C3_final
     }
 
 # ==============================================================================
-# 3. FRONTEND: STREAMLIT APP (NOVO LAYOUT)
+# 3. FRONTEND: STREAMLIT APP
 # ==============================================================================
 st.set_page_config(page_title="Calc. Energia Incidente", layout="wide")
 
-# Estilos Personalizados
 st.markdown("""
 <style>
     .info-box { background-color: #e8f4f8; padding: 15px; border-radius: 8px; border: 1px solid #b8daff; text-align: center; }
@@ -113,7 +117,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- SIDEBAR: APENAS IDENTIFICAÇÃO ---
 with st.sidebar:
     st.header("📋 Identificação")
     equip_name = st.text_input("TAG do Equipamento", value="QGBT-01")
@@ -122,7 +125,7 @@ with st.sidebar:
 
 st.title("⚡ Calculadora de Energia Incidente")
 
-# --- BLOCO 1: DADOS DE ENTRADA DO SISTEMA ---
+# BLOCO 1
 st.subheader("1. Dados do Sistema Elétrico")
 c1, c2, c3, c4 = st.columns(4)
 voltage = c1.selectbox("Tensão (V)", [208, 220, 380, 440, 480, 600], index=3)
@@ -139,104 +142,66 @@ d_mm = c8.number_input("Profund. (D)", 100, 5000, 400, disabled=is_open)
 
 st.markdown("---")
 
-# --- BLOCO 2: CORRENTES CALCULADAS (VISUALIZAÇÃO ANTES DO TEMPO) ---
-# Fazemos um pré-cálculo com tempos fictícios (0) só para pegar as correntes
+# BLOCO 2
 pre_res = calcular_tudo(voltage, ibf_ka, config_electrode, gap_mm, dist_mm, 0, 0, h_mm, w_mm, d_mm)
 
 if pre_res:
     st.subheader("2. Correntes de Arco Calculadas")
-    
     col_i1, col_i2, col_i3 = st.columns(3)
     
-    # Visual Destacado para as Correntes
     with col_i1:
-        st.markdown(f"""
-        <div class="info-box">
-            <div style="font-size: 14px; color: #555;">Corrente de Arco (Iarc)</div>
-            <div style="font-size: 22px; font-weight: bold; color: #007bff;">{pre_res['i_arc']:.3f} kA</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
+        st.markdown(f"""<div class="info-box"><div style="font-size: 14px; color: #555;">Corrente de Arco (Iarc)</div><div style="font-size: 22px; font-weight: bold; color: #007bff;">{pre_res['i_arc']:.3f} kA</div></div>""", unsafe_allow_html=True)
     with col_i2:
-        st.markdown(f"""
-        <div class="info-box">
-            <div style="font-size: 14px; color: #555;">Corrente Reduzida (Imin)</div>
-            <div style="font-size: 22px; font-weight: bold; color: #007bff;">{pre_res['i_min']:.3f} kA</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
+        st.markdown(f"""<div class="info-box"><div style="font-size: 14px; color: #555;">Corrente Reduzida (Imin)</div><div style="font-size: 22px; font-weight: bold; color: #007bff;">{pre_res['i_min']:.3f} kA</div></div>""", unsafe_allow_html=True)
     with col_i3:
         st.info("ℹ️ Utilize estas correntes para consultar o Coordenograma.")
 
-    # --- BLOCO 3: ENTRADA DE TEMPOS (AGORA O USUÁRIO SABE AS CORRENTES) ---
+    # BLOCO 3
     st.markdown("<br>", unsafe_allow_html=True)
     st.subheader("3. Tempos de Atuação (Proteção)")
-    
     ct1, ct2 = st.columns(2)
     t_nom = ct1.number_input(f"Tempo para {pre_res['i_arc']:.2f} kA (ms)", min_value=0.0, value=100.0, format="%.1f")
     t_min = ct2.number_input(f"Tempo para {pre_res['i_min']:.2f} kA (ms)", min_value=0.0, value=100.0, format="%.1f")
     
-    # --- BLOCO 4: RESULTADOS FINAIS ---
-    # Agora calculamos de verdade com os tempos inseridos
+    # BLOCO 4
     final_res = calcular_tudo(voltage, ibf_ka, config_electrode, gap_mm, dist_mm, t_nom, t_min, h_mm, w_mm, d_mm)
     
     st.markdown("---")
     st.subheader("4. Resultados Finais")
     
     cat_txt, color_hex = obter_categoria_nfpa(final_res['e_final'])
-    
     cr1, cr2, cr3 = st.columns([1, 1, 1.5])
     
     with cr1:
         st.metric("Energia Incidente", f"{final_res['e_final']:.2f} cal/cm²")
         st.caption(f"Pior Caso: {final_res['pior_caso']}")
-        
     with cr2:
         st.metric("Fronteira (AFB)", f"{final_res['afb_final']:.0f} mm")
-    
     with cr3:
-        st.markdown(f"""
-        <div class="risk-box" style="background-color: {color_hex};">
-            {cat_txt}
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"""<div class="risk-box" style="background-color: {color_hex};">{cat_txt}</div>""", unsafe_allow_html=True)
 
-    # --- BLOCO 5: MEMÓRIA DE CÁLCULO DETALHADA (EXPANDER) ---
+    # BLOCO 5
     st.markdown("<br>", unsafe_allow_html=True)
     with st.expander("📝 Memória de Cálculo Detalhada (Clique para expandir)"):
-        st.markdown("### Coeficientes Utilizados (Tabelas IEEE 1584)")
-        
         d = final_res
-        
-        # Mostra K1 a K10
+        st.markdown("### Coeficientes")
         cols_k = st.columns(5)
-        for i, val in enumerate(d['k']):
-            cols_k[i%5].write(f"**k{i+1}:** {val}")
-            
-        st.markdown("---")
-        st.markdown("### Cálculos Intermediários")
-        m1, m2 = st.columns(2)
+        for i, val in enumerate(d['k']): cols_k[i%5].write(f"**k{i+1}:** {val}")
         
+        st.markdown("---")
+        m1, m2 = st.columns(2)
         with m1:
             st.write(f"**Iarc_600:** {d['ia_600']:.4f} kA")
-            st.write(f"**VarCF (Eq. Redução):** {d['var_cf']:.4f}")
-            st.write(f"**Tamanho Equiv (EES):** {d['ees']:.2f} in")
-            st.write(f"**Dimensões Ajustadas:** H1={d['h1']:.2f}, W1={d['w1']:.2f}")
-            
+            st.write(f"**VarCF:** {d['var_cf']:.4f}")
+            st.write(f"**EES:** {d['ees']:.2f} in")
+            st.write(f"**Dimensões:** H1={d['h1']:.2f}, W1={d['w1']:.2f}")
         with m2:
-            st.write(f"**Fator Correção (CF):** {d['cf']:.4f}")
-            st.write(f"**Constante C2:** {d['C2']:.4f}")
-            st.write(f"**Constante C3:** {d['C3']:.4f}")
+            st.write(f"**CF:** {d['cf']:.4f}")
+            st.write(f"**C2:** {d['C2']:.4f}")
+            st.write(f"**C3:** {d['C3']:.4f}")
         
         st.markdown("---")
-        st.markdown("### Coeficientes de Caixa (b1-b3) e Tempo (tk)")
-        
-        if d['b']:
-            st.write(f"**b1:** {d['b'][0]} | **b2:** {d['b'][1]} | **b3:** {d['b'][2]}")
-        else:
-            st.write("Configuração Ar Livre (Sem coeficientes 'b')")
-            
-        st.write(f"Coeficientes de Tempo (tk): {d['tk']}")
-
+        st.write(f"Coeficientes b: {d['b']}" if d['b'] else "Configuração Ar Livre")
+        st.write(f"Coeficientes Tempo (tk): {d['tk']}")
 else:
     st.error("Erro nos dados de entrada.")
