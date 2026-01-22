@@ -19,7 +19,7 @@ CONSTANTS_AB = {'VCB':  {'A': 4,  'B': 20}, 'VCBB': {'A': 10, 'B': 24}, 'HCB':  
 def log10(x): return math.log10(x) if x > 0 else 0
 
 def obter_categoria_nfpa(e):
-    if e <= 1.2: return "Isento (< 1.2)", "#28a745"
+    if e <= 1.2: return "Isento (&lt; 1.2)", "#28a745" # Usei &lt; para evitar erro HTML
     if e <= 4.0: return "Categoria 1", "#ffc107"
     if e <= 8.0: return "Categoria 2", "#fd7e14"
     if e <= 25.0: return "Categoria 3", "#dc3545"
@@ -98,7 +98,7 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
     }
 
 # ==============================================================================
-# 3. FRONTEND: STREAMLIT APP (V11.0)
+# 3. FRONTEND: STREAMLIT APP (V11.1 CORRIGIDA)
 # ==============================================================================
 st.set_page_config(page_title="Calc. Energia Incidente", layout="wide")
 
@@ -278,22 +278,24 @@ if calc_btn:
         
         c_main, _ = st.columns([1, 0.01])
         with c_main:
-            st.markdown(f"""
-            <div class="hero-card" style="border-color: {color_hex};">
-                <div class="hero-label">Energia Incidente Final (Pior Caso)</div>
-                <div class="hero-value" style="color: {color_hex}">{final_res['e_final']:.2f} <span style="font-size:24px; color:#6b7280; font-weight:400;">cal/cm²</span></div>
-                
-                <div style="margin-top: 15px;">
-                    <span style="background-color: {color_hex}; color: white; padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 16px;">
-                        {cat_txt}
-                    </span>
-                </div>
-                
-                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px;">
-                    Fronteira de Arco (AFB): <b>{final_res['afb_final']:.0f} mm</b> &nbsp;•&nbsp; Cenário Definidor: <b>{final_res['pior_caso']}</b>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            # CORREÇÃO: Removida a indentação para não quebrar o HTML no markdown
+            hero_html = f"""
+<div class="hero-card" style="border-color: {color_hex};">
+    <div class="hero-label">Energia Incidente Final (Pior Caso)</div>
+    <div class="hero-value" style="color: {color_hex}">{final_res['e_final']:.2f} <span style="font-size:24px; color:#6b7280; font-weight:400;">cal/cm²</span></div>
+    
+    <div style="margin-top: 15px;">
+        <span style="background-color: {color_hex}; color: white; padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 16px;">
+            {cat_txt}
+        </span>
+    </div>
+    
+    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px;">
+        Fronteira de Arco (AFB): <b>{final_res['afb_final']:.0f} mm</b> &nbsp;•&nbsp; Cenário Definidor: <b>{final_res['pior_caso']}</b>
+    </div>
+</div>
+"""
+            st.markdown(hero_html, unsafe_allow_html=True)
 
         # Memória
         st.markdown("<br>", unsafe_allow_html=True)
