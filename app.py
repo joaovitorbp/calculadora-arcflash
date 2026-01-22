@@ -113,6 +113,7 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
     E_final = max(E_cal, E_min_cal)
     AFB_final = max(AFB, AFB_min)
     
+    # Retorna Dicionário Completo para o Relatório
     return {
         "ia_600": Iarc600, "i_arc": Iarc, "i_min": Imin, "var_cf": VarCf,
         "e_nominal": E_cal, "afb_nominal": AFB, "e_min": E_min_cal, "afb_min": AFB_min,
@@ -126,7 +127,7 @@ def calcular_tudo(Voc_V, Ibf, Config, Gap, Dist, T_ms, T_min_ms, H_mm, W_mm, D_m
     }
 
 # ==============================================================================
-# 3. FRONTEND: STREAMLIT APP (V33.0 - NO MORE X)
+# 3. FRONTEND: STREAMLIT APP (V34.0 - STABLE ROLLBACK)
 # ==============================================================================
 st.set_page_config(page_title="Calc. Energia Incidente", layout="wide")
 
@@ -146,67 +147,38 @@ def on_time_change():
 
 st.markdown("""
 <style>
-    /* Cards Estilizados */
     .std-card { background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: #1f2937; }
     .card-label { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 8px; }
     .card-value { font-size: 20px; font-weight: 700; color: #111827; }
     .card-unit { font-size: 14px; font-weight: 400; color: #6b7280; }
     
-    /* Cartões Finais */
     .final-card { background-color: #ffffff; border: 2px solid #e5e7eb; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
     .final-label { font-size: 14px; font-weight: 700; text-transform: uppercase; color: #6b7280; margin-bottom: 12px; }
     .final-value { font-size: 32px; font-weight: 800; }
     .final-unit { font-size: 18px; font-weight: 500; color: #9ca3af; }
     
-    /* Rodapé */
     .summary-footer { margin-top: 15px; padding: 10px 20px; background-color: #f9fafb; border-radius: 8px; text-align: center; color: #4b5563; font-size: 14px; display: flex; justify-content: center; gap: 20px; align-items: center; border: 1px solid #e5e7eb; }
     .summary-item { display: flex; align-items: center; gap: 6px; }
     .summary-label { font-weight: 500; color: #6b7280; }
     .summary-val-bold { font-weight: 700; color: #1f2937; text-transform: uppercase;}
     
-    /* Utilitários */
     .stNumberInput input { text-align: center; }
     .vertical-divider { border-right: 1px solid #e5e7eb; height: 100%; width: 1px; margin: 0 auto; }
-    
-    /* ============================================================
-       CSS NUCLEAR PARA REMOVER O BOTÃO "X" (CLEAR) DOS INPUTS
-       ============================================================ */
-    
-    /* Alvo 1: O container do botão de limpar nativo do Streamlit */
-    [data-testid="stInputClear"] {
-        display: none !important;
-        visibility: hidden !important;
-        width: 0px !important;
-        opacity: 0 !important;
-    }
-    
-    /* Alvo 2: Ícones SVG dentro de botões que podem ser o Clear */
-    div[data-baseweb="input"] svg {
-        display: none !important; 
-    }
-    
-    /* Alvo 3: Inputs numéricos - Remove setas de incremento/decremento (Spinners) */
-    input[type=number]::-webkit-inner-spin-button, 
-    input[type=number]::-webkit-outer-spin-button { 
-        -webkit-appearance: none; 
-        margin: 0; 
-    }
-    input[type=number] {
-        -moz-appearance: textfield; /* Firefox */
-    }
-
 </style>
 """, unsafe_allow_html=True)
 
 # --- SIDEBAR OTIMIZADA ---
 with st.sidebar:
     st.header("Dados do Projeto")
+    # Identificação no topo
     equip_name = st.text_input("TAG do Equipamento", value="", key="equip_tag")
     
-    st.markdown("---")
+    st.markdown("---") # Divisória
     
+    # Dados do Cliente (Abaixo)
     cli_name = st.text_input("Nome do Cliente", value="")
     cli_end = st.text_input("Endereço", value="")
+    # Vertical (um abaixo do outro)
     cli_cep = st.text_input("CEP", value="")
     cli_cnpj = st.text_input("CNPJ", value="")
     
@@ -230,6 +202,7 @@ w_mm = c7.number_input("Largura do Painel (mm)", min_value=0, value=None, step=1
 d_mm = c8.number_input("Profundidade do Painel (mm)", min_value=0, value=None, step=1, disabled=is_open, format="%d", key="d_in", on_change=on_system_change)
 
 st.markdown("---")
+# Pré-cálculo reativo
 pre_res = calcular_tudo(voltage, ibf_ka, config_electrode, gap_mm, dist_mm, 0, 0, h_mm, w_mm, d_mm)
 
 # --- SEÇÃO 2: PROTEÇÃO E TEMPOS ---
@@ -305,6 +278,7 @@ if st.session_state.results:
         st.markdown("---")
         st.subheader("5. Exportação")
 
+        # --- FUNÇÃO GERAR EXCEL (ADESIVO) ---
         def preencher_modelo_excel(nome_tag_atual):
             try:
                 wb = load_workbook("ADESIVO ENERGIA INCIDENTE - MODELO.xlsx")
@@ -363,6 +337,7 @@ if st.session_state.results:
             wb.save(output)
             return output.getvalue()
 
+        # --- FUNÇÃO GERAR WORD (RELATÓRIO) ---
         def gerar_relatorio_word(tag_atual, cli, end, cep, cnpj):
             try:
                 doc = DocxTemplate("ESTUDO DE ENERGIA INCIDENTE - MODELO.docx")
@@ -419,14 +394,14 @@ if st.session_state.results:
 
         col_d1, col_d2 = st.columns(2)
         
-        # 1. Adesivo (🏷️)
+        # 1. Adesivo (Botão Padronizado com ícone 🏷️)
         excel_data = preencher_modelo_excel(equip_name)
         if excel_data:
             f_name_xls = f"Adesivo_{equip_name}.xlsx" if equip_name else "Adesivo_ArcFlash.xlsx"
             with col_d1:
                 st.download_button("🏷️ Baixar Adesivo (.xlsx)", excel_data, f_name_xls, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", type="primary", use_container_width=True)
 
-        # 2. Relatório (📄)
+        # 2. Relatório (Botão Padronizado com ícone 📄)
         docx_data = gerar_relatorio_word(equip_name, cli_name, cli_end, cli_cep, cli_cnpj)
         if docx_data:
             f_name_doc = f"Relatorio_{equip_name}.docx" if equip_name else "Relatorio_ArcFlash.docx"
